@@ -1,0 +1,5 @@
+scrape_configs:
+  - job_name: flask-exporter-app
+    scrape_interval: 4s
+    static_configs:
+      - targets: ['flask-exporter-app:5000']

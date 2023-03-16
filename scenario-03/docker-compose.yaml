@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  flask-exporter-app:
+    build: ../flask-exporter-app
+    container_name: flask-exporter-app
+    hostname: flask-exporter-app
+    ports:
+      - "5000:5000"
+  generator:
+    build: ../generator
+    container_name: generator
+    environment:
+      HOST: "http://flask-exporter-app:5000"
+    depends_on:
+      - flask-exporter-app
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    entrypoint:
+      - "/bin/prometheus"
+      - "--config.file=/opt/prometheus/prometheus.yml"
+      - "--query.lookback-delta=15s"  # <-- testing shorter lookback duration
+    ports:
+      - "55055:9090"
+    volumes:
+      - ./prometheus.yml:/opt/prometheus/prometheus.yml
+    depends_on:
+      - flask-exporter-app
+      - generator
+

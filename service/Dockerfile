@@ -1,7 +1,6 @@
-FROM python:3.9
+FROM python:3.11-alpine
 
-RUN pip install Flask pyyaml
-
+RUN pip install Flask pyyaml prometheus-flask-exporter
 WORKDIR /app
 
 COPY service.py service.py
