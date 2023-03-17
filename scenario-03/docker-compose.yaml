@@ -1,18 +1,25 @@
 version: "3.9"
+
 services:
   flask-exporter-app:
     build: ../flask-exporter-app
     container_name: flask-exporter-app
     hostname: flask-exporter-app
+    networks:
+      - scenario-03
     ports:
-      - "5000:5000"
+      - 5000:5000
+  
   generator:
     build: ../generator
     container_name: generator
     environment:
       HOST: "http://flask-exporter-app:5000"
+    networks:
+      - scenario-03
     depends_on:
       - flask-exporter-app
+  
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -20,11 +27,44 @@ services:
       - "/bin/prometheus"
       - "--config.file=/opt/prometheus/prometheus.yml"
       - "--query.lookback-delta=15s"  # <-- testing shorter lookback duration
-    ports:
-      - "55055:9090"
     volumes:
       - ./prometheus.yml:/opt/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - scenario-03
+    ports:
+      - 9090:9090
     depends_on:
       - flask-exporter-app
       - generator
 
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    hostname: grafana
+    environment:
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_SIGNOUT_MENU: "true"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    networks:
+      - scenario-03
+    volumes:
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/default.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+        
+networks:
+  scenario-03:
+    name: scenario-03
+    driver: bridge        
